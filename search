@@ -1,0 +1,427 @@
+Public Class Form1
+    Public mainrecord As Integer
+    Dim auindfilename As String
+    Dim titlefilename As String
+    Dim keyindexfilename As String
+    Dim maindbfile As String
+    Dim currentrecord As Integer
+    Dim x As Integer
+    Dim amount As Integer
+    Private Function binarysearch(fileno As Integer, target As String)
+        Dim auind As authorindex
+        Dim titlend As titleindex
+        Dim keyind As keyindex
+        Dim cursor As Integer
+        Dim first As Integer
+        Dim last As Integer
+
+        first = 1
+        If cbChoice.Text = "Author" Then
+            last = (LOF(3) / Len(auind))
+            Do While last >= first
+                cursor = (first + last) / 2
+                FileGet(fileno, auind, cursor)
+                If Trim(auind.author) = target Then
+                    binarysearch = auind.mainrecno
+                    last = first - 1
+                Else
+                    If auind.author < target Then
+                        first = cursor + 1
+                    Else
+                        last = cursor - 1
+                    End If
+                End If
+            Loop
+        ElseIf cbChoice.Text = "Title" Then
+            last = LOF(5) / Len(titlend)
+            Do While last >= first
+                cursor = (first + last) / 2
+                FileGet(fileno, titlend, cursor)
+                If Trim(titlend.title) = target Then
+                    binarysearch = titlend.mainrecno2
+                    last = first - 1
+                Else
+                    If titlend.title < target Then
+                        first = cursor + 1
+                    Else
+                        last = cursor - 1
+                    End If
+                End If
+            Loop
+        ElseIf cbChoice.Text = "Keyword" Then
+            last = LOF(6) / Len(keyind)
+            Do While last >= first
+                cursor = (first + last) / 2
+                FileGet(fileno, keyind, cursor)
+                If Trim(keyind.keyword) = target Then
+                    binarysearch = keyind.mainrecno3
+                    last = first - 1
+                Else
+                    If keyind.keyword < target Then
+                        first = cursor + 1
+                    Else
+                        last = cursor - 1
+                    End If
+                End If
+            Loop
+        End If
+
+        If cbChoice.Text = "Author" Then
+            FileGet(fileno, auind, cursor)
+            If Trim(auind.author) = target Then
+                binarysearch = auind.mainrecno
+            Else
+                binarysearch = -1
+            End If
+        End If
+        If cbChoice.Text = "Title" Then
+            FileGet(fileno, titlend, cursor)
+            If Trim(titlend.title) = target Then
+                binarysearch = titlend.mainrecno2
+            Else
+                binarysearch = -1
+            End If
+        End If
+        If cbChoice.Text = "Keyword" Then
+            FileGet(fileno, keyind, cursor)
+            If Trim(keyind.keyword) = target Then
+                binarysearch = keyind.mainrecno3
+            Else
+
+                binarysearch = -1
+            End If
+        End If
+        Return binarysearch
+    End Function
+
+
+
+
+    Private Sub Importmenue_Click(sender As Object, e As EventArgs) Handles Importmenue.Click
+
+        Dim rec As Integer
+        Dim mytext As String
+        Dim vtitle As String
+        Dim titleend As String
+        Dim ericrecord As recordfix
+        Dim vfound As String
+        Dim abend As String
+
+        MsgBox("Select a file to open")
+        Open.ShowDialog()
+
+        FileOpen(1, Open.FileName, OpenMode.Input)
+        MsgBox("Choose where to save your file")
+        Save.ShowDialog()
+        FileOpen(2, Save.FileName, OpenMode.Random, RecordLength:=Len(ericrecord))
+
+        Do While Not EOF(1)
+            mytext = LineInput(1)
+            If Len(mytext) > 9 Then
+                If mytext.Substring(0, 10) = "Authors:  " Then
+                    ericrecord.author = mytext.Substring(10)
+                End If
+            End If
+
+            If Len(mytext) > 7 Then
+                If mytext.Substring(0, 8) = "Title:  " Then
+                    vtitle = mytext.Substring(8)
+                    mytext = LineInput(1)
+                    Do While mytext.Substring(0, 11) <> "Pub.Date:  "
+                        vtitle = vtitle + mytext
+                        mytext = LineInput(1)
+                    Loop
+                    titleend = InStr(vtitle, " / by ")
+                    If titleend > 0 Then
+                        vtitle = vtitle.Substring(0, titleend - 1)
+                    End If
+                    ericrecord.title = vtitle
+                    mytext = mytext.Substring(11)
+                    ericrecord.year = Val(mytext)
+                End If
+            End If
+
+            If Len(mytext) > 10 Then
+                If mytext.Substring(0, 11) = "FOUND IN:  " Then
+                    vfound = mytext.Substring(11)
+                    mytext = LineInput(1)
+                    Do While mytext.Substring(0, 11) <> "Abstract:  "
+                        vfound = vfound + mytext
+                        mytext = LineInput(1)
+                    Loop
+                    ericrecord.foundin = vfound
+                End If
+            End If
+
+            If Len(mytext) > 10 Then
+                If mytext.Substring(0, 11) = "Abstract:  " Then
+                    Dim nLine As String
+                    nLine = LineInput(1)
+                    While Not nLine.Contains("Pub.Type:  ")
+                        mytext += nLine
+                        nLine = LineInput(1)
+                    End While
+                    abend = InStr(mytext, "(Author")
+
+                    If abend > 0 Then
+                        mytext = mytext.Substring(0, abend - 1)
+                    End If
+                    ericrecord.abstract = mytext.Substring(11)
+                    rec = rec + 1
+                    FilePut(2, ericrecord, rec)
+                End If
+
+            End If
+
+        Loop
+        FileClose(1)
+
+        Dim auindrec As authorindex
+        auindfilename = Save.FileName
+        auindfilename = auindfilename + "au"
+        FileOpen(3, auindfilename, OpenMode.Random, RecordLength:=Len(auindrec))
+        Dim tiindrec As titleindex
+        Dim keyindrec As keyindex
+        titlefilename = Save.FileName
+        titlefilename = titlefilename + "ti"
+        FileOpen(5, titlefilename, OpenMode.Random, RecordLength:=Len(tiindrec))
+        keyindexfilename = Save.FileName
+        keyindexfilename = keyindexfilename + "kw"
+        FileOpen(6, keyindexfilename, OpenMode.Random, RecordLength:=Len(keyindrec))
+
+
+        Dim scanrec As Integer
+        For scanrec = 1 To rec
+            FileGet(2, ericrecord, scanrec)
+
+            auindrec.author = ericrecord.author
+            tiindrec.title = ericrecord.title
+            auindrec.mainrecno = scanrec
+            tiindrec.mainrecno2 = scanrec
+
+            Dim word As String
+            word = ""
+            Dim r As Char
+            For index As Integer = 1 To Len(ericrecord.title)
+                r = Mid(ericrecord.title, index, 1)
+                If r = " "c And word <> "" Then
+
+                    keyindrec.keyword = word
+                    keyindrec.mainrecno3 = scanrec
+
+                    FilePut(6, keyindrec)
+                    word = ""
+                ElseIf Char.IsLetter(r) Then
+                    word += r
+                End If
+            Next
+
+            word = ""
+            For index As Integer = 1 To Len(ericrecord.abstract)
+                r = Mid(ericrecord.abstract, index, 1)
+                If r = " "c And word <> "" Then
+
+                    keyindrec.keyword = word
+                    keyindrec.mainrecno3 = scanrec
+
+                    FilePut(6, keyindrec)
+                    word = ""
+                ElseIf Char.IsLetter(r) Then
+                    word += r
+                End If
+            Next
+
+
+            FilePut(3, auindrec)
+            FilePut(5, tiindrec)
+
+        Next
+        FileClose(2)
+        amount = rec
+
+
+
+        Dim auindrec2 As recordfix
+        Dim i As Integer, j As Integer
+        For i = 1 To rec - 1
+
+            FileGet(3, auindrec, i)
+            For j = i + 1 To rec
+                FileGet(3, auindrec2, j)
+                If auindrec.author > auindrec2.author Then
+                    FilePut(3, auindrec2, j)
+                    FilePut(3, auindrec2, i)
+                    FileGet(3, auindrec, i)
+
+                End If
+            Next j
+        Next i
+        FileClose(3)
+        Dim tiindrec2 As titleindex
+        Dim k As Integer, l As Integer
+        For k = 1 To rec - 1
+            FileGet(5, tiindrec, k)
+            For l = k + 1 To rec
+                FileGet(5, tiindrec2, l)
+                If tiindrec.title > tiindrec2.title Then
+                    FilePut(5, tiindrec, l)
+                    FilePut(5, tiindrec2, k)
+                    FileGet(5, tiindrec, k)
+                End If
+            Next l
+        Next k
+        Dim keyindrec2 As keyindex
+        Dim w As Integer, n As Integer
+        For w = 1 To rec - 1
+            FileGet(6, keyindrec, w)
+            For n = w + 1 To rec
+                FileGet(6, keyindrec2, n)
+                If keyindrec.keyword > keyindrec2.keyword Then
+                    FilePut(6, keyindrec, n)
+                    FilePut(6, keyindrec2, w)
+                    FileGet(6, keyindrec, w)
+                End If
+            Next n
+        Next w
+        FileClose(5)
+        FileClose(6)
+        maindbfile = Save.FileName
+    End Sub
+
+
+    Private Sub nextbutton_Click(sender As Object, e As EventArgs) Handles nextbutton.Click
+        mainrecord = mainrecord + 1
+        x = x + 1
+        lblrecnum.Text = Str(x)
+
+
+        If mainrecord > amount Then
+            MsgBox("There are no more records")
+            mainrecord = amount
+            x = mainrecord
+            lblrecnum.Text = Str(x)
+
+        End If
+        Dim ericrecord As recordfix
+        ericrecord.author = ""
+        ericrecord.title = ""
+        ericrecord.foundin = ""
+        ericrecord.year = ""
+        ericrecord.abstract = ""
+        FileOpen(2, Save.FileName, OpenMode.Random, RecordLength:=Len(ericrecord))
+        FileGet(2, ericrecord, mainrecord)
+        txtauthor.Text = ericrecord.author
+        txttitle.Text = ericrecord.title
+        txtfound.Text = ericrecord.foundin
+        txtDate.Text = ericrecord.year
+        txtabstract.Text = ericrecord.abstract
+        FileClose(2)
+    End Sub
+
+
+
+    Private Sub Backbutton_Click(sender As Object, e As EventArgs) Handles Backbutton.Click
+        mainrecord = mainrecord - 1
+        x = x - 1
+        lblrecnum.Text = Str(x)
+
+
+        If mainrecord = 0 Then
+            MsgBox("you are at the beginnig")
+            mainrecord = 1
+            x = mainrecord
+            lblrecnum.Text = Str(x)
+
+        End If
+        Dim ericrecord As recordfix
+        ericrecord.author = ""
+        ericrecord.title = ""
+        ericrecord.foundin = ""
+        ericrecord.year = ""
+        ericrecord.abstract = ""
+        FileOpen(2, Save.FileName, OpenMode.Random, RecordLength:=Len(ericrecord))
+        FileGet(2, ericrecord, mainrecord)
+        txtauthor.Text = ericrecord.author
+        txttitle.Text = ericrecord.title
+        txtfound.Text = ericrecord.foundin
+        txtDate.Text = ericrecord.year
+        txtabstract.Text = ericrecord.abstract
+        FileClose(2)
+    End Sub
+
+    Private Sub lblauthor_Click(sender As Object, e As EventArgs) Handles lblauthor.Click
+
+    End Sub
+
+
+
+    Private Sub txtauthor_KeyPress(sender As Object, e As KeyPressEventArgs) Handles txtauthor.KeyPress
+        If e.KeyChar = Microsoft.VisualBasic.ChrW(Keys.Return) Then
+            If maindbfile = "" Then
+                MsgBox("Select file")
+                Open.ShowDialog()
+                maindbfile = Open.FileName
+                MsgBox("Select index file")
+                Open.ShowDialog()
+                auindfilename = Open.FileName
+            End If
+            Dim mainrecnum As recordfix
+            FileOpen(2, maindbfile, OpenMode.Random, RecordLength:=Len(mainrecnum))
+            Dim auindrec As authorindex
+            Dim tiindrec As titleindex
+            Dim keyindrec As keyindex
+
+            FileOpen(3, auindfilename, OpenMode.Random, RecordLength:=Len(auindrec))
+            FileOpen(5, titlefilename, OpenMode.Random, RecordLength:=Len(tiindrec))
+            FileOpen(6, keyindexfilename, OpenMode.Random, RecordLength:=Len(keyindrec))
+            Dim recno As Integer
+            Dim authorname As String
+            Dim titlename As String
+            Dim keyname As String
+            If cbChoice.Text = "Author" Then
+                authorname = Trim(txtSearch.Text)
+
+                recno = binarysearch(3, authorname)
+            ElseIf cbChoice.Text = "Title" Then
+                titlename = Trim(txtSearch.Text)
+                recno = binarysearch(5, titlename)
+            ElseIf cbChoice.Text = "Keyword" Then
+                keyname = Trim(txtSearch.Text)
+                recno = binarysearch(6, keyname)
+            End If
+
+            If recno = -1 Then
+                MsgBox("No matching record in database")
+                txtauthor.Text = ""
+                txttitle.Text = ""
+                txtDate.Text = ""
+                txtfound.Text = ""
+                txtabstract.Text = ""
+                lblrecnum.Text = ""
+            Else
+                FileGet(2, mainrecnum, recno)
+                txtauthor.Text = mainrecnum.author
+                txttitle.Text = mainrecnum.title
+                txtDate.Text = mainrecnum.year
+                txtfound.Text = mainrecnum.foundin
+                txtabstract.Text = mainrecnum.abstract
+                x = recno
+                lblrecnum.Text = Str(x)
+            End If
+
+            FileClose(3)
+            FileClose(5)
+            FileClose(6)
+            FileClose(2)
+        End If
+    End Sub
+
+    Private Sub filemenue_Click(sender As Object, e As EventArgs) Handles filemenue.Click
+
+    End Sub
+
+    Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+    End Sub
+End Class
+
