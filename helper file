@@ -1,0 +1,22 @@
+Module Module1
+    Structure recordfix
+        Dim pubyear As Integer
+        <VBFixedString(25)> Dim author As String
+        <VBFixedString(120)> Dim title As String
+        <VBFixedString(1500)> Dim abstract As String
+        <VBFixedString(80)> Dim foundin As String
+        <VBFixedString(5)> Dim year As String
+    End Structure
+    Structure authorindex
+        <VBFixedString(25)> Dim author As String
+        Dim mainrecno As Integer
+    End Structure
+    Structure titleindex
+        <VBFixedString(120)> Dim title As String
+        Dim mainrecno2 As Integer
+    End Structure
+    Structure keyindex
+        <VBFixedString(75)> Dim keyword As String
+        Dim mainrecno3 As Integer
+    End Structure
+End Module
